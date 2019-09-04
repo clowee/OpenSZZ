@@ -2,6 +2,7 @@ package com.SZZ.jiraAnalyser.git;
 
 import java.io.File;
 import java.io.FileNotFoundException;
+import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.PrintWriter;
@@ -27,11 +28,11 @@ import org.w3c.dom.NodeList;
 
 public class JiraRetriever {
 	private String jiraURL;
+	private String projectName;
 	private URL url;
 	private URLConnection connection;
 	private Document d;
-	private Logger logger;
-	private String jiraKey;
+	private PrintWriter pw;
 
 	/**
 	 * Class for retrieving all Jira issues. The retrieval must be done only if
@@ -40,10 +41,16 @@ public class JiraRetriever {
 	 * @param jiraURL
 	 * @param projectName
 	 */
-	public JiraRetriever(String jiraURL, Logger logger, String jiraKey ) {
+	public JiraRetriever(String jiraURL, String projectName) {
 		this.jiraURL = jiraURL;
-		this.logger = logger;
-		this.jiraKey = jiraKey;
+		this.projectName = projectName;
+		try {
+			pw = new PrintWriter(new FileOutputStream(new File(projectName + "-log.txt"),
+					true /* append = true */));
+		} catch (FileNotFoundException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
 	}
 
 	/**
@@ -66,35 +73,10 @@ public class JiraRetriever {
 		}
 		return doc;
 	}
-	
-	public boolean testURL(){
+
+	private int getTotalNumberIssues() {
 		String tempQuery = "?jqlQuery=project+%3D+{0}+ORDER+BY+key+DESC&tempMax=1";
-		tempQuery = tempQuery.replace("{0}", jiraKey);
-		if (jiraKey.equals("EXEC")){
-			tempQuery = tempQuery.replace("EXEC", "'EXEC'");
-		}
-		try {
-			url = new URL(jiraURL + tempQuery);
-			connection = url.openConnection();
-			d = parseXML(connection.getInputStream());
-			NodeList descNodes = d.getElementsByTagName("item");
-		
-		} catch (Exception e) {
-			return false;
-	} 
-		return true;
-		
-	}
-	
-	
-	
-	
-	private int getTotalNumberIssues(){
-		String tempQuery = "?jqlQuery=project+%3D+{0}+ORDER+BY+key+DESC&tempMax=1";
-		tempQuery = tempQuery.replace("{0}", jiraKey);
-		if (jiraKey.equals("EXEC")){
-			tempQuery = tempQuery.replace("EXEC", "'EXEC'");
-		}
+		tempQuery = tempQuery.replace("{0}", projectName);
 		try {
 			url = new URL(jiraURL + tempQuery);
 			connection = url.openConnection();
@@ -102,42 +84,38 @@ public class JiraRetriever {
 			NodeList descNodes = d.getElementsByTagName("item");
 			Node node = descNodes.item(0);
 			for (int p = 0; p < node.getChildNodes().getLength(); p++) {
-			if (node.getChildNodes().item(p).getNodeName().equals("key")){
-				String key = (node.getChildNodes().item(p).getTextContent());
-				key = key.replaceFirst(".*?(\\d+).*", "$1");
-				return Integer.parseInt(key);
-			}}
+				if (node.getChildNodes().item(p).getNodeName().equals("key")) {
+					String key = (node.getChildNodes().item(p).getTextContent());
+					key = key.replaceFirst(".*?(\\d+).*", "$1");
+					return Integer.parseInt(key);
+				}
+			}
 		} catch (Exception e) {
-			System.out.println(e.getMessage());
-		} 
-		return 0;
+			pw.println(e.getMessage());
 		}
-	
-		
-	public void printIssues(){
+		return 0;
+	}
+
+	public void printIssues() {
 		int page = 0;
 		int totalePages = (int) Math.ceil(((double) getTotalNumberIssues() / 1000));
-		String fileName = jiraKey + "_" + page + ".csv";
-		File file = new File(jiraKey + "/" + fileName);
-		/*while (file.exists() ) {
+		String fileName = projectName + "_" + page + ".csv";
+		File file = new File(projectName + "/" + fileName);
+		while (file.exists()) {
 			page++;
 			fileName = projectName + "_" + page + ".csv";
 			file = new File(projectName + "/" + fileName);
 		}
-		if (page > 0){
+		if (page > 0) {
 			page--;
 			fileName = projectName + "_" + page + ".csv";
 			file = new File(projectName + "/" + fileName);
 			file.delete();
-		}*/
-		
+		}
+
 		while (true) {
 			String tempQuery = "?jqlQuery=project+%3D+{0}+ORDER+BY+key+ASC&tempMax=1000&pager/start={1}";
-			tempQuery = tempQuery.replace("{0}", jiraKey);
-			if (jiraKey.equals("EXEC")){
-				tempQuery = tempQuery.replace("EXEC", "'EXEC'");
-			}
-		
+			tempQuery = tempQuery.replace("{0}", projectName);
 			tempQuery = tempQuery.replace("{1}", ((page) * 1000) + "");
 			if (totalePages >= (page + 1))
 				System.out.println("Download Jira issues. Page: " + (page + 1) + "/" + totalePages);
@@ -145,27 +123,29 @@ public class JiraRetriever {
 				url = new URL(jiraURL + tempQuery);
 				connection = url.openConnection();
 				d = parseXML(connection.getInputStream());
-		
-			NodeList descNodes = d.getElementsByTagName("item");
-			if (descNodes.getLength() == 0)
-				return;
-			 fileName = jiraKey + "_" + page + ".csv";
-			 file = new File(fileName);
-			
-			PrintWriter pw = null;
-			try {
-				pw = new PrintWriter(file);
-			} catch (FileNotFoundException e1) {
-				// TODO Auto-generated catch block
-				e1.printStackTrace();
-			}
-			printHeader(pw);
-			printIssuesOfPage(d, pw);
-			pw.close();
-			page++;
-		} catch (Exception e) {
-			System.out.println(e.getMessage());
-			System.out.println("Retrying in 1 minute");
+
+				NodeList descNodes = d.getElementsByTagName("item");
+				if (descNodes.getLength() == 0)
+					return;
+				fileName = projectName + "_" + page + ".csv";
+				file = new File(fileName);
+				if (file.exists() && !file.isDirectory()) {
+					return;
+				}
+				PrintWriter pw = null;
+				try {
+					pw = new PrintWriter(file);
+				} catch (FileNotFoundException e1) {
+					// TODO Auto-generated catch block
+					e1.printStackTrace();
+				}
+				printHeader(pw);
+				printIssuesOfPage(d, pw);
+				pw.close();
+				page++;
+			} catch (Exception e) {
+				e.printStackTrace();
+				pw.println(("Retrying in 1 minute"));
 				try {
 					Thread.sleep(60000);
 				} catch (InterruptedException e1) {
@@ -173,53 +153,14 @@ public class JiraRetriever {
 					e1.printStackTrace();
 				}
 				printIssues();
-		}}
+			}
+		}
 	}
-	
-	private void printHeader(PrintWriter pw){
-		String header = "issueKey,title,resolution,status,assignee,createdDateEpoch,resolvedDateEpoch,type,attachments,priority,comments";
+
+	private void printHeader(PrintWriter pw) {
+		String header = "issueKey;title;resolution;status;assignee;createdDateEpoch;resolvedDateEpoch;type;attachments;priority;comments;";
 		pw.println(header);
 	}
-	
-	/**
-	 * Combine to one file
-	 */
-	public void combineToOneFile() {
-		PrintWriter pw = null;
-		boolean headerFlag = false;
-		List<File> toRemove = new LinkedList<File>();
-		try {
-			 pw = new PrintWriter("faults.csv");
-		} catch (FileNotFoundException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-		}
-		Path path = FileSystems.getDefault().getPath(".");
-		 for (File fileEntry : path.toFile().listFiles()) {
-			 if (fileEntry.getName().startsWith(jiraKey)){
-				 toRemove.add(fileEntry);
-				 try {
-					
-					List<String> list = Files.readAllLines(fileEntry.toPath());
-					if (!headerFlag) 
-						headerFlag = true;
-					else
-						list.remove(0);
-					for (String s : list){
-						pw.println(s);
-					}
-				} catch (IOException e) {
-					// TODO Auto-generated catch block
-					e.printStackTrace();
-				}
-			 }
-		 }
-		 for (int i = 0; i < toRemove.size(); i++){
-			 toRemove.get(i).delete();
-		 }
-	}
-	
-	
 
 	/**
 	 * 
@@ -248,7 +189,7 @@ public class JiraRetriever {
 			for (int p = 0; p < children.getLength(); p++) {
 				switch (children.item(p).getNodeName()) {
 				case "title":
-					title = children.item(p).getTextContent().replace(",", "");
+					title = children.item(p).getTextContent().replace(";", "");
 					break;
 				case "resolution":
 					resolution = children.item(p).getTextContent();
@@ -291,7 +232,7 @@ public class JiraRetriever {
 					break;
 				case "attachments":
 					NodeList attachments = children.item(p).getChildNodes();
-					//System.out.println(attachments.getLength());
+					// System.out.println(attachments.getLength());
 					for (int u = 0; u < attachments.getLength(); u++) {
 						Node attachment = attachments.item(u);
 						NamedNodeMap attchmentName = attachment.getAttributes();
@@ -306,20 +247,15 @@ public class JiraRetriever {
 					break;
 				}
 			}
-			String toPrint = issueKey + ","+
-							 title.replace(",", "")    + ","+
-							 resolution+"," + 
-							 status.replace(",", "")   + ","+
-							 assignee.replace(",", "") + ","+
-							 createdDateEpoch + ","+
-							 resolvedDateEpoch + ","+
-							 type + ","+
-							 attachmentsList.toString().replace(",", "") + "," +
-							 priority.replace(",", "") +",";
-			for (String comment : commentsList){
-				toPrint+=comment.replace(";", "").replace(":", "").replace(".", "").replace(",", "").replace("\n", "").replace("\r", "").replace("\t", "")+";";}
+			String toPrint = issueKey + ";" + title + ";" + resolution + ";" + status + ";" + assignee + ";"
+					+ createdDateEpoch + ";" + resolvedDateEpoch + ";" + type + ";" + attachmentsList.toString() + ";"
+					+ priority + ";";
+			for (String comment : commentsList) {
+				toPrint += comment.replace(";", "").replace(":", "").replace(".", "").replace(",", "").replace("\n", "")
+						.replace("\r", "").replace("\t", "") + ";";
+			}
 			pw.println(toPrint);
-			
+
 		}
 
 	}

@@ -1,4 +1,4 @@
-package com.SZZ.jiraAnalyser.entities;
+package  com.SZZ.jiraAnalyser.entities;
 
 
 import java.util.List;
@@ -45,7 +45,7 @@ public class Issue {
 	private  List<String> comments;
 	private  String title;
 	private String type;
-	private String priority;
+	
 	
 	public Issue(
 			long id,String title,Status status,

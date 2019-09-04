@@ -1,22 +1,17 @@
-package com.SZZ.jiraAnalyser.entities;
+package  com.SZZ.jiraAnalyser.entities;
 
-import java.io.BufferedReader;
-import java.io.File;
-import java.io.FileReader;
 import java.net.URL;
 import java.util.ArrayList;
 import java.util.LinkedList;
 import java.util.List;
 
-import com.SZZ.jiraAnalyser.entities.Transaction.FileInfo;
-import com.SZZ.jiraAnalyser.git.Git;
-import com.SZZ.*;
+import  com.SZZ.jiraAnalyser.git.*;
 
 public class TransactionManager {
 	
 	private List<Transaction> transactions;
 	
-	private List<Transaction> totalTransactions;
+	//private List<Transaction> totalTransactions;
 	
 	private Storage storage;
 
@@ -25,15 +20,15 @@ public class TransactionManager {
 	 * @param url
 	 * @return
 	 */
-	public List<Transaction> getBugFixingCommits(String jiraKey) {
+	public List<Transaction> getBugFixingCommits(URL url, String projectName) {
 		if (this.transactions != null) return this.transactions;
 		
-		this.transactions = new ArrayList<Transaction>(); //Arrays.asList(new Transaction[] { Transaction.EXAMPLE_TRANSACTION1, Transaction.EXAMPLE_TRANSACTION2,Transaction.EXAMPLE_TRANSACTION3,Transaction.EXAMPLE_TRANSACTION4,});
+		this.transactions = new ArrayList<Transaction>(); 
 	
 		// TODO: Parse stuff from url
 		try {
-			storage = new Storage();
-			transactions = this.storage.checkoutCvs(jiraKey);
+			storage = new Storage(projectName);
+			transactions = this.storage.checkoutCvs(url,projectName);
 		} catch (Exception e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
@@ -49,16 +44,8 @@ public class TransactionManager {
 		return transactions;
 	}
 	
-	
+	//This is a message
 	public Git getGit(){
 		return this.storage.getGit();
 	}
-	
-	
-
-	
-	
-	
-	
-	
 }

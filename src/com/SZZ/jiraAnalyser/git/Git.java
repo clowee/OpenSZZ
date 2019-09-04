@@ -5,9 +5,9 @@ import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.FileReader;
 import java.io.IOException;
+import java.io.PrintWriter;
 import java.lang.ProcessBuilder.Redirect;
 import java.net.URL;
-import java.nio.file.FileSystems;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.ArrayList;
@@ -15,13 +15,10 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.Scanner;
 
-import org.apache.log4j.Logger;
 import org.eclipse.jgit.api.BlameCommand;
-import org.eclipse.jgit.api.errors.GitAPIException;
 import org.eclipse.jgit.blame.BlameResult;
 import org.eclipse.jgit.diff.DiffEntry;
 import org.eclipse.jgit.diff.DiffFormatter;
-import org.eclipse.jgit.errors.IncorrectObjectTypeException;
 import org.eclipse.jgit.lib.ObjectId;
 import org.eclipse.jgit.lib.ObjectReader;
 import org.eclipse.jgit.lib.Repository;
@@ -37,45 +34,26 @@ import com.SZZ.jiraAnalyser.entities.*;
 import com.SZZ.jiraAnalyser.entities.Transaction.FileInfo;
 
 
+
+
 public class Git {
-	
-	public String cloneCommand;
-	public  File storagePath;
-	public  String pullCommand;
-	public  File workingDirectory;
-	public  String logCommand;
-	public  File logFile;
-	public  File csvFile;
+
+	public final String cloneCommand;
+	public final File storagePath;
+	public final String pullCommand;
+	public final File workingDirectory;
+	public final String logCommand;
+	public final File logFile;
+	public final File csvFile;
 	private BlameResult blame;
-	private String projectName = "";
-	
+
 	private static final char DELIMITER = ';';
-	
-	
-	public Git(Path storagePath){
-		this.storagePath = storagePath.toFile();
-		System.out.println(storagePath.toString());
-		this.pullCommand = "git pull";
-		this.workingDirectory = new File("./"+storagePath+"/.git");
-		this.logCommand ="git log " +
-				"--pretty=format:\'" +
-				"%H" + DELIMITER +
-				"%aI" + DELIMITER +
-				"%aN" + DELIMITER +
-				"%s" +  DELIMITER +
-				"\' " +
-				"--name-status -M100% " ;  
-		workingDirectory.delete();
-	}
-	
-	
-	
+
 	public Git(Path storagePath, URL url) {
-		this.cloneCommand = "git clone " + url.toString() + " " +projectName;
+		this.cloneCommand = "git clone " + url.toString();
 		this.storagePath = storagePath.toFile();
-		System.out.println(storagePath.toString());
 		this.pullCommand = "git pull";
-		this.workingDirectory = new File("./extraction/"+projectName+"/"+projectName+"/.git");
+		this.workingDirectory = gitWorkingDirectory(storagePath, url);
 		this.logCommand ="git log " +
 				"--pretty=format:\'" +
 				"%H" + DELIMITER +
@@ -83,44 +61,43 @@ public class Git {
 				"%aN" + DELIMITER +
 				"%s" +  DELIMITER +
 				"\' " +
-				"--name-status -M100% " ;
+				"--name-status -M100%";
 		this.logFile = this.gitLogFile(storagePath, url);
 		this.csvFile = this.csvFile(storagePath, url);
 		workingDirectory.delete();
 	}
-	
+
 	private String gitDirectory(URL url) {
 		final String link = url.toString();
 		return link.substring(link.lastIndexOf('/') + 1, link.lastIndexOf('.'));
 	}
-	
+
 	private File gitWorkingDirectory(Path storagePath, URL url) {
 		return Paths.get(storagePath.toString(), this.gitDirectory(url)).toFile();
 	}
-	
+
 	private File gitLogFile(Path storagePath, URL url) {
 		return Paths.get(storagePath.toString(), this.gitDirectory(url) + ".txt")
 				.toFile();
 	}
-	
+
 	private File csvFile(Path storagePath, URL url) {
 		return Paths.get(storagePath.toString(), this.gitDirectory(url) + ".csv")
 				.toFile();
 	}
-	
+
 	public void cloneRepository() throws Exception {
 		execute(this.cloneCommand, this.storagePath);
 	}
-	
+
 	public void pullUpdates() throws Exception {
-		execute(this.pullCommand, this.storagePath);
+		execute(this.pullCommand, this.workingDirectory);
 	}
-	
+
 	public void saveLog() throws Exception {
-		Path path = FileSystems.getDefault().getPath(".");
-		executeToFile(this.logCommand, this.storagePath, new File("gitlog.csv"));
+		executeToFile(this.logCommand, this.workingDirectory, this.logFile);
 	}
-	
+
 	private void execute(String command, File directory)
 			throws Exception {
 		System.out.println("$ " + command);
@@ -131,21 +108,20 @@ public class Git {
         Process p = pb.start();
         p.waitFor();
 	}
-	
+
 	private void executeToFile(
 			String command, File workingDirectory, File destinationFile)
 					throws Exception  {
 		System.out.println("$ " + command + " > " + destinationFile);
 		ProcessBuilder pb = new ProcessBuilder(command.split(" "));
-		pb.directory(this.workingDirectory);
+		pb.directory(workingDirectory);
 		pb.redirectOutput(destinationFile);
 		Process p = pb.start();
         p.waitFor();
 	}
-	
-	public List<Transaction> getCommits(File logFile) {
+	public List<Transaction> getCommits() {
 		List<Transaction> transactions = new ArrayList<Transaction>();
-		int count = 1;
+		
 		 String line="";
 		 String line1="";
 		 String hashId = "";
@@ -161,10 +137,7 @@ public class Git {
 		       List<FileInfo> filesAffected = new ArrayList<FileInfo>();
 		       line1 = br.readLine();
 		       if (line1 != null){
-		    	 
-	
 		       while (!(line1).equals("")){
-		    	  
 		    	   int BUFFER_SIZE = 100000;
 		    	   br.mark(BUFFER_SIZE);
 		    	   if (!line1.startsWith("\'")){
@@ -178,7 +151,7 @@ public class Git {
 		    		 break;
 		    	   }
 		    	   line1 = br.readLine();
-		    	   
+
 		       }
 		       }
 		       Transaction transaction = new Transaction(
@@ -194,23 +167,23 @@ public class Git {
 		}
 		catch(Exception e){
 				e.printStackTrace();
-			
+
 		}
-			
+
 		return transactions;
 	}
-	
+
 	  /**
 	   * Returns String with differences of fileName done by a shaCommit
 	   * @param shaCommit
 	   * @param fileName
 	   * @return
 	   */
-	  public  String getDiff (String shaCommit, String fileName, Logger l)  {
+	  public  String getDiff (String shaCommit, String fileName, PrintWriter l)  {
 		String result = "";
-		File  localRepo1 = new File(workingDirectory+"");    
+		File  localRepo1 = new File(workingDirectory+"");
 		try {
-		org.eclipse.jgit.api.Git git = org.eclipse.jgit.api.Git.open(localRepo1); 
+		org.eclipse.jgit.api.Git git = org.eclipse.jgit.api.Git.open(localRepo1);
 	    ObjectId  oldId = git.getRepository().resolve(shaCommit+"^^{tree}");
 	    ObjectId headId = git.getRepository().resolve(shaCommit + "^{tree}");
 	    ObjectReader reader = git.getRepository().newObjectReader();
@@ -221,12 +194,12 @@ public class Git {
 		    List<DiffEntry> diffs= git.diff()
 		            .setNewTree(newTreeIter)
 		            .setOldTree(oldTreeIter)
-		            .call();  
+		            .call();
 		    ByteArrayOutputStream out = new ByteArrayOutputStream();
 		    DiffFormatter df = new DiffFormatter(out);
 		   // df.setDiffComparator(RawTextComparator.WS_IGNORE_LEADING);
 		    df.setRepository(git.getRepository());
-		    
+
 		    for(DiffEntry diff : diffs)
 		    {
 		      if (diff.getNewPath().contains(fileName)){
@@ -241,32 +214,22 @@ public class Git {
 		          break;
 		      }
 		    }
-		} catch (IncorrectObjectTypeException e) {
+		} catch (Exception e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
-			l.error(e);
-			return null;
-		} catch (IOException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-			l.error(e);
-			return null;
-		} catch (GitAPIException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-			l.error(e);
+			l.println(e);
 			return null;
 		}
 	    return result;
 		}
-	  
+
 	  /**
 	   * It gets removed lines from a commit starting from the diffString
 	   * @param diffString
 	   * @return
 	   */
 	  public  List<Integer> getLinesMinus(String diffString){
-		 
+
 		  int actualInt = 1;
 		  boolean actualSet = false;
 		  List<Integer> listMinus = new LinkedList<Integer>();
@@ -283,7 +246,7 @@ public class Git {
 		    	 actualInt++;
 		    	 listMinus.add(actualInt);
 		    	 break;
-		     case '+': 
+		     case '+':
 		     	break;
 		     case '@':
 		    	 int stringMinus = line.indexOf('-');
@@ -297,7 +260,7 @@ public class Git {
 		     default:
 		    	 if (actualSet)
 		    		 actualInt++;
-		    	 break;    			 
+		    	 break;
 		     }
 		  }
 		  scanner.close();
@@ -306,10 +269,10 @@ public class Git {
 			  return null;
 		  }
 		  return listMinus;
-		  
+
 	  }
-	  
-	  
+
+
 	  /**
 	   * It gets blame of a file at a specific commit time
 	   * index 0 of array ==> line 0
@@ -320,12 +283,12 @@ public class Git {
 	   * @param git
 	   * @return
 	   */
-	  
-	  public  String getBlameAt(String commitSha, String file,Logger l, int lineNumber) {
-		  File  localRepo1 = new File(workingDirectory+"");  
+		//removed unused parameter PrintWriter l
+	  public  String getBlameAt(String commitSha, String file, int lineNumber) {
+		  File  localRepo1 = new File(workingDirectory+"");
 		try {
 			if (blame==null){
-			  org.eclipse.jgit.api.Git git = org.eclipse.jgit.api.Git.open(localRepo1); 
+			  org.eclipse.jgit.api.Git git = org.eclipse.jgit.api.Git.open(localRepo1);
 			  Repository repository = git.getRepository();
 		      BlameCommand blamer = new BlameCommand(repository);
 		      ObjectId commitID;
@@ -338,50 +301,52 @@ public class Git {
 		} catch (Exception e) {
 			return null;
 		}
-	  } 
-	  
+	  }
+
 	  /**
-	   * It gets commit object starting from a specific sha 
-	   * 
+	   * It gets commit object starting from a specific sha
+	   *
 	   */
-	  public RevCommit getCommit(String sha, Logger l){
-		  File  localRepo1 = new File(workingDirectory+"");     
+	  public RevCommit getCommit(String sha, PrintWriter l){
+		  File  localRepo1 = new File(workingDirectory+"");
 		  //Repository repository = git.getRepository();
 		  RevCommit commit = null;
 		  try{
-			  org.eclipse.jgit.api.Git git = org.eclipse.jgit.api.Git.open(localRepo1); 
+			  org.eclipse.jgit.api.Git git = org.eclipse.jgit.api.Git.open(localRepo1);
 			  Repository repository = git.getRepository();
-			  RevWalk walk = new RevWalk( repository); 
+			  RevWalk walk = new RevWalk( repository);
 			  ObjectId commitId = ObjectId.fromString( sha);
 			   commit = walk.parseCommit( commitId );
 			  //System.out.println(commit.getCommitTime());
 			} catch (Exception e) {
 				e.printStackTrace();
-				l.error(e);
+				l.println((e));
 				return null;
-			} 
+			}
 		  return commit;
 	  }
-	  
+
 	  /**
 	   * Get Commit that changed the file before the parameter commit
 	   * @param sha
 	   * @param file
 	   * @return
 	   */
-	  public String getPreviousCommit (String sha, String file, Logger l){
-		  File  localRepo1 = new File(workingDirectory+"");   
+	  public String getPreviousCommit (String sha, String file, PrintWriter l){
+		  if (sha.equals("a8da84c614ba6e6e87c6c91e0c426ddfec2766a2"))
+			  System.out.println();
+		  File  localRepo1 = new File(workingDirectory+"");
 		  Iterable<RevCommit> iterable;
-		  String finalSha = "";	  
+		  String finalSha = "";
 		  RevCommit latestCommit = null;
 		  String path = file;
 		  try {
-			org.eclipse.jgit.api.Git git = org.eclipse.jgit.api.Git.open(localRepo1); 
-			RevWalk revWalk = new RevWalk( git.getRepository() ); 
+			org.eclipse.jgit.api.Git git = org.eclipse.jgit.api.Git.open(localRepo1);
+			RevWalk revWalk = new RevWalk( git.getRepository() );
 		    RevCommit revCommit = getCommit(sha, null);
 		    revWalk.markStart( revCommit );
 		    revWalk.sort( RevSort.COMMIT_TIME_DESC );
-		    revWalk.setTreeFilter( AndTreeFilter.create( PathFilter.create( path ), TreeFilter.ANY_DIFF ) );		    
+		    revWalk.setTreeFilter( AndTreeFilter.create( PathFilter.create( path ), TreeFilter.ANY_DIFF ) );
 		    latestCommit = revWalk.next();
 		    while (!latestCommit.getName().equals(sha))
 		    	latestCommit = revWalk.next();
@@ -389,11 +354,11 @@ public class Git {
 		    if (latestCommit == null)
 		    	return null;
 		    finalSha =  latestCommit.getName();
-	
+
 		  } catch (Exception e) {
-			l.info("No Predecessor-Commits found for "+sha +"for file " + file);
+			 l.println("No Predecessor-Commits found for "+sha +"for file " + file);
 			return null;
-		}	  
+		}
 		  return finalSha;
 	  }
 }

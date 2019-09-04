@@ -1,14 +1,17 @@
 package com.SZZ.app;
 
 import java.io.File;
+import java.io.IOException;
 import java.net.MalformedURLException;
 import java.net.URL;
+import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.LinkedList;
 import java.util.List;
 
 import org.apache.log4j.Logger;
+import org.eclipse.jgit.util.FileUtils;
 
 import com.SZZ.jiraAnalyser.Application;
 import com.SZZ.jiraAnalyser.entities.Transaction;
@@ -17,79 +20,40 @@ import com.SZZ.jiraAnalyser.git.Git;
 import com.SZZ.jiraAnalyser.git.JiraRetriever;
 
 public class SZZApplication {
+
+	/* Get actual class name to be printed on */
 	
-	  /* Get actual class name to be printed on */
-	static Logger log = Logger.getLogger(SZZApplication.class.getName());
-	public static final String DEFAULT_BUG_TRACKER = "/sr/jira.issueviews:searchrequest-xml/temp/SearchRequest.xml";
-	
-	public static void main(String[] args)  {
+	private static String jiraAPI = "/jira/sr/jira.issueviews:searchrequest-xml/temp/SearchRequest.xml";
+
+	public static void main(String[] args) {
+		args = new String[7];
+		args[0] = "-all";
+		args[1] = "https://github.com/apache/commons-bcel.git";
+		args[2] = "https://issues.apache.org/jira/projects/BCEL";
+		args[3] = "BCEL";
+		
+
 		if (args.length == 0) {
 			System.out.println("Welcome to SZZ Calculation script.");
 			System.out.println("Here a guide how to use the script");
-			System.out.println("szz.jar -d jiraUrl jiraKey");
-			System.out.println("The script saves the file faults.csv containing the issues reported in Jira");
-			System.out.println("szz.jar -l gitRepositoryPath");
-			System.out.println(
-					"This script saves the file gitlog.csv containing the parsed gitlog with all the information needed to execute szz");
-			System.out.println("szz.jar -m gitRepositoryPath");
-			System.out.println(
-					"the script takes in input the files generated before (faults.csv and gitlog.csv) and generate the final result in the file FaultInducingCommits.csv");
-			System.out.println("szz.jar -all githubUrl, jiraKey => all steps together");
+			System.out.println("szz.jar -all githubUrl, jiraUrl, jiraKey => all steps together");
 		} else {
 			switch (args[0]) {
-			case "-d":
-				if (args.length == 1){
-					System.out.println("Jira key not given");
-					break;
-				}
-		
-				JiraRetriever jr = new JiraRetriever(args[1] + DEFAULT_BUG_TRACKER, log, args[2]);
-				if (jr.testURL()){
-				jr.printIssues();
-				jr.combineToOneFile();
-				}
-				else{
-					System.out.println("JiraKey is wrong or is not of the apache foundation");
-					break;
-				}
-		
-				break;
-			case "-l":
-				Git g = new Git((new File(args[1]).toPath()));
-				try {
-					g.saveLog();
-				} catch (Exception e) {
-					// TODO Auto-generated catch block
-					e.printStackTrace();
-				}
-				break;
-			case "-m":
-				TransactionManager tm = new TransactionManager();
-				List<Transaction> transactions =  tm.getBugFixingCommits(args[1]);
-				Application a = new Application(args[1]);
-				Git g1 = new Git((new File(args[2]).toPath()));
-				a.calculateBugFixingCommits(transactions);
-				a.calculateBugInducingCommits(g1);
-				break;
 			case "-all":
 				Git git;
-				try{	
-				JiraRetriever jr1 = new JiraRetriever(args[2]+DEFAULT_BUG_TRACKER, log, args[3]);
-				jr1.printIssues();
-				jr1.combineToOneFile();
-				}
-				catch(Exception e){
+				try {
+					String[] array = args[2].split("/jira/projects/");
+					String projectName = args[3];
+					String jiraUrl = array[0] + jiraAPI;
+					JiraRetriever jr1 = new JiraRetriever(jiraUrl, projectName);
+					jr1.printIssues();
+
+				} catch (Exception e) {
 					break;
 				}
 				try {
-					git = new  Git((new File(args[3])).toPath(), new URL(args[1]));
-					git.cloneRepository();
-					git.saveLog();
-					TransactionManager t1 = new TransactionManager();
-					List<Transaction> transactions1 =  t1.getBugFixingCommits(args[3]);
-					Application a1 = new Application(args[3]);
-					a1.calculateBugFixingCommits(transactions1);
-					//a1.calculateBugInducingCommits(git);
+					Application a = new Application();
+					a.mineData(args[1], args[2].replace("{0}", args[3]), args[3], args[3]);
 				} catch (MalformedURLException e) {
 					// TODO Auto-generated catch block
 					e.printStackTrace();
@@ -97,7 +61,7 @@ public class SZZApplication {
 					// TODO Auto-generated catch block
 					e.printStackTrace();
 				}
-				
+				clean(args[3]);
 				break;
 			default:
 				System.out.println("Commands are not in the right form! Please retry!");
@@ -106,5 +70,33 @@ public class SZZApplication {
 			}
 		}
 
+	}
+
+	private static void clean(String jiraKey) {
+		for (File fileEntry : new File(".").listFiles()) {
+			if (fileEntry.getName().toLowerCase().contains(jiraKey.toLowerCase())) {
+				if (!fileEntry.getName().contains("Commit")) {
+					try {
+						if (fileEntry.isFile())
+							Files.deleteIfExists(fileEntry.toPath());
+						else
+							deleteDir(fileEntry);
+					} catch (IOException e) {
+						// TODO Auto-generated catch block
+						e.printStackTrace();
+					}
+				}
+			}
+		}
+	}
+
+	private static void deleteDir(File file) {
+		File[] contents = file.listFiles();
+		if (contents != null) {
+			for (File f : contents) {
+				deleteDir(f);
+			}
+		}
+		file.delete();
 	}
 }

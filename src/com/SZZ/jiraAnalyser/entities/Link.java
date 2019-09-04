@@ -1,9 +1,10 @@
-package com.SZZ.jiraAnalyser.entities;
+package  com.SZZ.jiraAnalyser.entities;
 
 import java.io.BufferedReader;
 import java.io.File;
 import java.io.FileReader;
 import java.io.IOException;
+import java.io.PrintWriter;
 import java.util.Arrays;
 import java.util.Date;
 import java.util.HashSet;
@@ -13,30 +14,26 @@ import java.util.Set;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
-import org.apache.log4j.Logger;
-
 import org.eclipse.jgit.revwalk.RevCommit;
 
-import com.SZZ.jiraAnalyser.git.Git;
-import com.SZZ.jiraAnalyser.entities.*;
+ import  com.SZZ.jiraAnalyser.entities.*;
 import com.SZZ.jiraAnalyser.entities.Issue.Resolution;
-import com.SZZ.jiraAnalyser.entities.Issue.Status;
 import com.SZZ.jiraAnalyser.entities.Transaction.FileInfo;
+import  com.SZZ.jiraAnalyser.git.*;
+
 
 public class Link {
 
 	public final long number;
 	public final Transaction transaction;
-	
 	public Issue issue = null;
+	private String projectName = "";
 
 	private int syntacticConfidence = 0;
 
 	private int semanticConfidence = 0;
 
 	private List<Suspect> suspects = new LinkedList<Suspect>();
-	
-	private String jiraKey; 
 	
 
 
@@ -49,14 +46,13 @@ public class Link {
 	 * @param b
 	 * @param number
 	 */
-	public Link(Transaction t, long number, String jiraKey) {
+	public Link(Transaction t, long number, String projectName) {
 		this.transaction = t;
-		this.jiraKey = jiraKey;
 		this.number = number;
+		this.projectName = projectName;
 		this.setBug();
 		this.setSyntacticConfidence();
 		this.setSemanticConfidence();
-		
 	}
 
 	public List<Suspect> getSuspects() {
@@ -182,33 +178,31 @@ public class Link {
 	 * @return true false
 	 */
 	private void setBug() {
-		try (BufferedReader br = new BufferedReader(new FileReader(("faults.csv")))) {
+		int page = (int)Math.floor(number / 1000);
+		while(!new File(projectName+"_"+page+".csv").exists()){
+			page--;
+		}
+		try (BufferedReader br = new BufferedReader(new FileReader((projectName+"_"+page+".csv")))) {
 			String sCurrentLine;
 			while ((sCurrentLine = br.readLine()) != null) {
 				sCurrentLine = sCurrentLine.replaceAll("\"", "");
-				if (sCurrentLine.startsWith(jiraKey + "-" + number)) {
-					String[] s = sCurrentLine.split(",");
+				if (sCurrentLine.startsWith(projectName + "-" + number)) {
+					String[] s = sCurrentLine.split(";");
 					List<String> comments = new LinkedList<String>();
-					List<String> attachments = null;
-					try{
-						attachments = 		Arrays.asList(s[7].replace("[", "").replace("]", ""));
-					}
-					catch(Exception e){
-						e.printStackTrace();
-					}
+					List<String> attachments = Arrays.asList(s[7].replace("[", "").replace("]", ""));
 					int i = 8;
 					while (i < s.length) {
 						comments.add(s[i]);
 						i++;
 					}
-					Status status = Status.UNCONFIRMED;
+					Issue.Status status = Issue.Status.UNCONFIRMED;
 					Resolution resolution = Resolution.NONE;
 					
 					try{
-						Status.valueOf(s[3].toUpperCase());
+						Issue.Status.valueOf(s[3].toUpperCase());
 					}
 					catch(Exception e){
-						status = Status.UNCONFIRMED;
+						status = Issue.Status.UNCONFIRMED;
 					}
 					
 					try{
@@ -218,11 +212,8 @@ public class Link {
 						 resolution = Resolution.NONE;
 					}
 					
-					if  (s.length>4){
 					issue = new Issue(number, s[1], status,resolution, s[4],
 							Long.parseLong(s[5]), Long.parseLong(s[6]),attachments, comments,s[7]);
-					}
-					
 					break;
 				}
 			}
@@ -258,7 +249,7 @@ public class Link {
 	 * 
 	 * @param git
 	 */
-	public void calculateSuspects(Git git, Logger l) {
+	public void calculateSuspects(Git git, PrintWriter l) {
 		for (FileInfo fi : transaction.getFiles()) {
 			if (fi.filename.endsWith(".java")) {
 					String diff = git.getDiff(transaction.getId(), fi.filename, l);
@@ -288,12 +279,12 @@ public class Link {
 	 * @param linesMinus
 	 * @return
 	 */
-	private Suspect getSuspect(String previous, Git git, String fileName, List<Integer> linesMinus, Logger l) {
+	private Suspect getSuspect(String previous, Git git, String fileName, List<Integer> linesMinus, PrintWriter l) {
     	RevCommit closestCommit = null; 
     	long tempDifference = Long.MAX_VALUE; 
     	for (int i : linesMinus){ 
     		try{ 
-    			String sha = git.getBlameAt(previous,fileName,l,i); 
+    			String sha = git.getBlameAt(previous,fileName,i);
     			if (sha == null)
     				break;
     			RevCommit commit = git.getCommit(sha,l); 
@@ -305,7 +296,7 @@ public class Link {
     				}
     			} catch (Exception e){ 
     				e.printStackTrace();
-    				l.error(e);
+    				l.println(e);
     			}
     	} 
     	if (closestCommit != null){ 
