@@ -1,4 +1,8 @@
 # SZZ
+This is the Standalone version of our open source implementation of the SZZ Algorithm [1] to calculate the <i>BugInducingCommits</i> of any project using Git as versioning system and Jira as issue tracker. 
+A cloud-native version is available on the [OpenSZZ-Cloud-Native repository](https://github.com/clowee/OpenSZZ-cloud-native)
+
+A dataset including the analysis of 33 projects, has been published in 2019 [2]. 
 SZZ implements the algorithm proposed by Sliseris et al. [2] to map the  Fault-Inducing Commits. 
 
 
@@ -42,14 +46,8 @@ The script first clones the gitHub repository, then download the Jira faults, an
 
  
 
-# Notes and References
+# References
 
-This algorithm has been implemented in [1]. 
+[1] Jacek Śliwerski, Thomas Zimmermann, and Andreas Zeller. 2005. When do changes induce fixes?. In Proceedings of the 2005 international workshop on Mining software repositories (MSR '05). ACM, New York, NY, USA, 1-5. DOI=http://dx.doi.org/10.1145/1082983.1083147
 
-If you use this algorithm, please cite as 
-
-[1] Valentina Lenarduzzi, Davide Taibi, Francesco Lomio, Luca Pellegrini, Heikki Huttunen. "On the Fault Proneness of SonarQube Technical Debt Violations: A comparison of seven Machine Learning Techniques" Journal of Software: Evolution and Process 2019 (in press) 
-
-
-
-[2] Jacek Śliwerski , Thomas Zimmermann , Andreas Zeller, When do changes induce fixes?, ACM SIGSOFT Software Engineering Notes, v.30 n.4, July 2005  [doi>10.1145/1082983.1083147]
+[2] V. Lenarduzzi, N. Saarimäki, and D. Taibi,“The Technical Debt Dataset”, in The Fifteenth International Conference on Predictive Models and Data Analytics in Software Engineering (PROMISE’19), Brazil, 2019.
