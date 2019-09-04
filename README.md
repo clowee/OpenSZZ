@@ -1,5 +1,5 @@
-# SZZ
-This is the Standalone our open source implementation of the SZZ Algorithm [1] to calculate the <i>BugInducingCommits</i> of any project using Git as versioning system and Jira as issue tracker. 
+# OpenSZZ
+OpenSZZ  is  our open source implementation of the SZZ Algorithm [1] to calculate the <i>BugInducingCommits</i> of any project using Git as versioning system and Jira as issue tracker. 
 A cloud-native version is available on the [OpenSZZ-Cloud-Native repository](https://github.com/clowee/OpenSZZ-cloud-native)
 
 A dataset including the analysis of 33 projects, has been published in 2019 [2]. 
