@@ -28,9 +28,9 @@ public class SZZApplication {
 	public static void main(String[] args) {
 		args = new String[7];
 		args[0] = "-all";
-		args[1] = "https://github.com/apache/commons-bcel.git";
-		args[2] = "https://issues.apache.org/jira/projects/BCEL";
-		args[3] = "BCEL";
+		args[1] = ""; //"https://github.com/apache/commons-bcel.git";
+		args[2] = "";//"https://issues.apache.org/jira/projects/BCEL";
+		args[3] = "";// BCEL";
 		
 
 		if (args.length == 0) {
