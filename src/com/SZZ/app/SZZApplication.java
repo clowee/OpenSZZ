@@ -26,15 +26,29 @@ public class SZZApplication {
 	private static String jiraAPI = "/jira/sr/jira.issueviews:searchrequest-xml/temp/SearchRequest.xml";
 
 	public static void main(String[] args) {
-		args = new String[7];
-		args[0] = "-all";
-		args[1] = ""; //"https://github.com/apache/commons-bcel.git";
-		args[2] = "";//"https://issues.apache.org/jira/projects/BCEL";
-		args[3] = "";// BCEL";
+//		args = new String[7];
+//		args[0] = "-all";
+//		args[1] = "https://github.com/apache/commons-bcel.git";
+//		args[2] = "https://issues.apache.org/jira/projects/BCEL";
+//		args[3] = "BCEL";
+		
+//		args[0] = "-all";
+//		args[1] = "https://github.com/apache/archiva.git";
+//		args[2] = "https://issues.apache.org/jira/projects/MRM";
+//		args[3] = "MRM";
+//		https://issues.apache.org/jira/projects/MRM
 		
 
+System.out.println("Number of Command Line Argument = "+args.length);
+System.out.println("executing open szz with the following parameters");
+		for(int i = 0; i< args.length; i++) {
+			System.out.println(String.format("Argument %d is %s", i, args[i]));
+		}
+		
+		
+		
 		if (args.length == 0) {
-			System.out.println("Welcome to SZZ Calculation script.");
+			System.out.println("Welcome to the SZZ Calculation script.");
 			System.out.println("Here a guide how to use the script");
 			System.out.println("szz.jar -all githubUrl, jiraUrl, jiraKey => all steps together");
 		} else {
@@ -61,7 +75,7 @@ public class SZZApplication {
 					// TODO Auto-generated catch block
 					e.printStackTrace();
 				}
-				clean(args[3]);
+//				clean(args[3]);
 				break;
 			default:
 				System.out.println("Commands are not in the right form! Please retry!");

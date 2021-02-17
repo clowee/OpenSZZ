@@ -48,7 +48,6 @@ public class JiraRetriever {
 			pw = new PrintWriter(new FileOutputStream(new File(projectName + "-log.txt"),
 					true /* append = true */));
 		} catch (FileNotFoundException e) {
-			// TODO Auto-generated catch block
 			e.printStackTrace();
 		}
 	}
@@ -100,16 +99,17 @@ public class JiraRetriever {
 		int page = 0;
 		int totalePages = (int) Math.ceil(((double) getTotalNumberIssues() / 1000));
 		String fileName = projectName + "_" + page + ".csv";
-		File file = new File(projectName + "/" + fileName);
+		File file = new File( fileName);
+		System.out.println("Jira issues saved in "+fileName);
 		while (file.exists()) {
 			page++;
 			fileName = projectName + "_" + page + ".csv";
-			file = new File(projectName + "/" + fileName);
+			file = new File( fileName);
 		}
 		if (page > 0) {
 			page--;
 			fileName = projectName + "_" + page + ".csv";
-			file = new File(projectName + "/" + fileName);
+			file = new File( fileName);
 			file.delete();
 		}
 
@@ -155,6 +155,7 @@ public class JiraRetriever {
 				printIssues();
 			}
 		}
+		
 	}
 
 	private void printHeader(PrintWriter pw) {

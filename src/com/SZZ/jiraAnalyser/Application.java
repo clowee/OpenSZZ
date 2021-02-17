@@ -59,7 +59,6 @@ public class Application {
 		try {
 			Thread.sleep(2000);
 		} catch (InterruptedException e) {
-			// TODO Auto-generated catch block
 			e.printStackTrace();
 			return  false;
 		}
@@ -70,12 +69,12 @@ public class Application {
 		catch(Exception e){
 			return  false;
 		}
-		
+
 		return  true;
 	}
 	
 	/**
-	 * It prints a table summarying the results of the analysis
+	 * It prints a table summarizing the results of the analysis
 	 * @param links
 	 */
 	private void printData(List<Link> links){
