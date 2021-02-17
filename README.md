@@ -6,39 +6,18 @@ A dataset including the analysis of 33 projects, has been published in 2019 [2].
 
 The current version can tag commits in github with the faults reported in Jira. 
 
+## How to cite
+
+Valentina Lenarduzzi, Fabio Palomba, Davide Taibi, and Damian Andrew Tamburri. 2020. OpenSZZ: A Free, Open-Source, Web-Accessible Implementation of the SZZ Algorithm. In Proceedings of the 28th International Conference on Program Comprehension (ICPC '20). DOI:https://doi.org/10.1145/3387904.3389295
+
 
 ## Download
 Release 0.1
 
 ## Usage: 
-1. Clone the GitHub Repository 
 
-2. Download the faults from Jira: 
-     
-     szz.jar -d jiraUrtl jiraKey
-     
-     eg: szz.jar https://issues.apache.org/jira AMBARI
-     
-     The script saves the file faults.csv containing the issues reported in Jira  
-
-3. Save gitLogsMap 
-     
-     szz.jar -l gitRepositoryPath
-   
-     e.g. szz.jar -l ./projects/ambari 
-      
-     This script saves the file gitlog.csv containing the parsed gitlog with all the information needed to execute szz
-
-4. Map Faults to commits
-      
-      szz.jar -m jiraKey
-     
-     the script takes in input the files generated before (faults.csv and gitlog.csv) and generate the final result in the file FaultInducingCommits.csv
-      
-      
-## Usage [alternative]:
-This command executes all the steps at once: 
-* szz.jar -all githubUrl jiraUrl jiraKey
+     * szz.jar -all githubUrl jiraUrl jiraKey
+     * e.g.:  java -jar openszz.jar -all https://github.com/apache/batik https://issues.apache.org/jira/projects/BATIK batik
  
 The script first clones the gitHub repository, then download the Jira faults, and finally maps faults to commits. 
 
