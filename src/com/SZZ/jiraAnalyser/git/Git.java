@@ -46,6 +46,8 @@ public class Git {
 	public final File logFile;
 	public final File csvFile;
 	private BlameResult blame;
+	private String lastAnalysedCommit;
+	private String lastAnalysedFile;
 
 	private static final char DELIMITER = ';';
 
@@ -284,24 +286,40 @@ public class Git {
 	   * @return
 	   */
 		//removed unused parameter PrintWriter l
-	  public  String getBlameAt(String commitSha, String file, int lineNumber) {
-		  File  localRepo1 = new File(workingDirectory+"");
-		try {
-			if (blame==null){
-			  org.eclipse.jgit.api.Git git = org.eclipse.jgit.api.Git.open(localRepo1);
-			  Repository repository = git.getRepository();
-		      BlameCommand blamer = new BlameCommand(repository);
-		      ObjectId commitID;
-			  commitID = repository.resolve(commitSha);
-		      blamer.setStartCommit(commitID);
-		      blamer.setFilePath(file);
-		      blame = blamer.call();}
-		      RevCommit commit = blame.getSourceCommit(lineNumber);
-		      return commit.getName();
+		public String getBlameAt(String commitSha, String file, int lineNumber) {
+			if (this.blame == null 
+				|| !this.lastAnalysedCommit.equals(commitSha) 
+				|| !this.lastAnalysedFile.equals(file)) {
+				resetBlameResult(commitSha, file);
+			}
+			try {
+				if (this.blame == null) return null;
+				RevCommit resultCommit = this.blame.getSourceCommit(lineNumber);
+				return resultCommit.getName();
+			} catch (Exception e) {
+				return null;
+			}
+		  }
+
+		/**
+		 * It resets blame result with result for given file of given commit
+		 * @param commitSha
+		 * @param file
+		 * @return
+		 */
+		private void resetBlameResult(String commitSha, String file) {
+		lastAnalysedCommit = commitSha;
+		lastAnalysedFile = file;
+		try(Repository repository = org.eclipse.jgit.api.Git.open(workingDirectory).getRepository()){
+			BlameCommand blamer = new BlameCommand(repository);
+			ObjectId commitID = repository.resolve(commitSha);
+			blamer.setStartCommit(commitID);
+			blamer.setFilePath(file);
+			this.blame = blamer.call();
 		} catch (Exception e) {
-			return null;
+			this.blame = null;
 		}
-	  }
+	}
 
 	  /**
 	   * It gets commit object starting from a specific sha
