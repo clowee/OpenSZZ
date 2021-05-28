@@ -254,12 +254,12 @@ public class Link {
 			if (fi.filename.endsWith(".java")) {
 					String diff = git.getDiff(transaction.getId(), fi.filename, l);
 					if (diff == null)
-						break;
+						continue;
 					List<Integer> linesMinus = git.getLinesMinus(diff);
 					if (linesMinus == null)
-						return;
+						continue;
 					if (linesMinus.size() == 0)
-						return;
+						continue;
 					String previousCommit = git.getPreviousCommit(transaction.getId(), fi.filename,l);
 					if (previousCommit != null) {
 						Suspect s = getSuspect(previousCommit, git, fi.filename, linesMinus,l);
@@ -286,7 +286,7 @@ public class Link {
     		try{ 
     			String sha = git.getBlameAt(previous,fileName,i);
     			if (sha == null)
-    				break;
+    				continue;
     			RevCommit commit = git.getCommit(sha,l); 
     			long difference =(issue.getOpen()/1000) - (commit.getCommitTime()); 
     			if (difference > 0){ 
