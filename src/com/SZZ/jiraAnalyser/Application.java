@@ -118,14 +118,12 @@ public class Application {
 	 */
 	private void discartLinks(List<Link> links){
 		List<Link> linksToDelete = new LinkedList<Link>();
-		for (Link l : links){
-			if (l.getSemanticConfidence() < 1 && (l.getSemanticConfidence() != 1 ||  l.getSyntacticConfidence() < 0)) {
-				linksToDelete.add(l);
-				}
-			else
-				if (l.transaction.getTimeStamp().getTime() > l.issue.getClose()){
-					linksToDelete.add(l);
-				}
+		for (Link l : links) {
+            if (l.issue != null && !l.issue.getType().equals("Bug")
+                    || !(l.getSemanticConfidence() > 1 || (l.getSemanticConfidence() == 1 || l.getSyntacticConfidence() > 0))
+                    || l.transaction.getTimeStamp().getTime() > l.issue.getClose()) {
+                linksToDelete.add(l);
+            }
 		}
 		String print = "\n";
 		print += "\n";
@@ -171,7 +169,7 @@ public class Application {
 			PrintWriter printWriter;
 			try {
 				printWriter = new PrintWriter(token+"_BugInducingCommits.csv");
-				printWriter.println("bugFixingId;bugFixingTs;bugFixingfileChanged;bugInducingId;bugInducingTs;issueType");
+				printWriter.println("bugFixingId;bugFixingTs;bugFixingfileChanged;bugInducingId;bugInducingTs;issueId");
 				for (Link l : links){
 					if (count % 100 == 0)
 						System.out.println(count + " Commits left");
@@ -186,7 +184,7 @@ public class Application {
 			        			s.getFileName()		+ ";" +
 			        			s.getCommitId()     + ";" +
 			        			format1.format(s.getTs()) +";"+
-			        			l.issue.getType()
+			        			l.issue.getId()
 			        			);
 			        }
 			        count--;
